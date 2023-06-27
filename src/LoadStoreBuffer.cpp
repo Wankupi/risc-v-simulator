@@ -1,6 +1,10 @@
 #include "LoadStoreBuffer.h"
 
 void LoadStoreBuffer::execute(Cache &cache, Memory &mem, ResultType rs, RoB2LSB rob) {
+	if (rob.clear_signal) {
+		on_clear();
+		return;
+	}
 	auto cr = cache.get_result(mem);
 	result_next = cr;
 	update_dependencies(cr, rs, rob);
@@ -85,4 +89,9 @@ void LoadStoreBuffer::update_dependencies(ResultType cr, ResultType rs, RoB2LSB 
 		if (rob.ready && list[i].wait && list[i].RoB_id == rob.firstID)
 			list_next[i].wait = false;
 	}
+}
+
+void LoadStoreBuffer::on_clear() {
+	for (auto &x: list_next) x.busy = false;
+	result_next.ready = false;
 }

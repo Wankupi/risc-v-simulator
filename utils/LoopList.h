@@ -11,7 +11,7 @@ struct LoopList {
 	bool full() {
 		return head == tail && arr[head].busy;
 	}
-	bool empty() {
+	bool empty() const {
 		return head == tail && !arr[head].busy;
 	}
 	void push(T x) {
@@ -22,4 +22,7 @@ struct LoopList {
 		if (++head == N) head = 0;
 	}
 	T &operator[](int x) { return arr[x]; }
+	void clear() {
+		for (auto &x : arr) x.busy = false;
+	}
 };

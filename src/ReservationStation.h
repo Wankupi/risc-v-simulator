@@ -10,7 +10,7 @@ struct ReservationStationEntry : public Instr2RS {
 class ReservationStation {
 public:
 	void add(Instr2RS const &entry);
-	void execute(ALU &alu, ResultType lsb);
+	void execute(ALU &alu, ResultType lsb, bool clear_signal);
 
 	void flush() {
 		list = list_next;
@@ -20,7 +20,8 @@ public:
 	ResultType export_data(ALU &alu) const {
 		return result;
 	}
-
+	void on_clear(ALU &alu);
+	void init();
 private:
 	void update_dependencies(ALU &alu, ResultType lsb);
 

@@ -38,13 +38,16 @@ enum class Opera {
 	srl,
 	sra,
 	or_,
-	and_
+	and_,
+	exit
 };
 
 class InstructionUnit {
 public:
-	void execute(Memory &mem, bool block);
-
+	void execute(Memory &mem, bool decoder_need_stall,
+				 bool jump_by_decoder, unsigned int newPC_from_decoder, bool jump_by_RoB, unsigned int newPC_from_RoB);
+	// this function is called only when decoder need stall and RoB do not send a clear signal
+	void stall_by_decoder();
 	void flush() {
 		PC = PC_next;
 		wait1 = wait1_next;
@@ -55,6 +58,11 @@ public:
 		IMM = IMM_next;
 		RD = RD_next;
 		instrAddr = instrAddr_next;
+	}
+	void init() {
+		PC_next = 0x00000000;
+		wait1_next = false;
+		ready_next = false;
 	}
 
 public:

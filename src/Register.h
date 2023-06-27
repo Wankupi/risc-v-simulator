@@ -8,6 +8,7 @@ public:
 		R[0] = 0;
 		Q = Q_next;
 		D = D_next;
+		D[0] = false;
 	}
 	unsigned int operator[](unsigned int x) { return R[x]; }
 	unsigned int get_dependence(unsigned int x) { return Q[x]; }
@@ -19,7 +20,12 @@ public:
 	void set_val(unsigned int x, unsigned int RoB_id, unsigned int val) {
 		R_next[x] = val;
 		D_next[x] = (Q[x] != RoB_id);
-		if (Q[x] == RoB_id) Q[x] = 0;
+		if (Q[x] == RoB_id) Q_next[x] = 0;
+	}
+	void init() {
+		R_next.fill(0);
+		Q_next.fill(0);
+		D_next.fill(0);
 	}
 
 public:

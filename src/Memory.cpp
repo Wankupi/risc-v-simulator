@@ -2,14 +2,14 @@
 #include <cstring>
 #include <sstream>
 #include <string>
-
+#include <string>
 void Memory::load_file(std::istream &in) {
 	std::string str;
 	unsigned int current = 0;
 	while (std::getline(in, str)) {
 		if (str.empty()) continue;
 		if (str.front() == '@') {
-			current = atoi(str.data() + 1);
+			current = std::stoi(str.data() + 1, nullptr, 16);
 			continue;
 		}
 		std::istringstream is(str);

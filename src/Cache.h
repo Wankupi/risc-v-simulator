@@ -15,11 +15,14 @@ public:
 		type_next = type_;
 	}
 
-	void execute(Memory &mem) {
+	void execute(Memory &mem, bool clear_signal) {
+		if (clear_signal) {
+			on_clear();
+			return;
+		}
 		if (stat > 0) {
 			stat_next = stat - 1;
-			data_ready_next = (stat == 1 && type == LS_type::load_word || type == LS_type::load_half ||
-							  type == LS_type::load_byte || type == LS_type::load_half_unsigned || type == LS_type::load_byte_unsigned);
+			data_ready_next = (stat == 1 && type != LS_type::hang);
 		}
 		else if (stat == 0) {
 			if (type == LS_type::store_word)
@@ -59,6 +62,16 @@ public:
 	bool ready() { return data_ready; }
 	bool free() { return stat == 0; }
 
+	void on_clear() {
+		init();
+	}
+
+    void init() {
+		stat_next = 0;
+		data_ready_next = false;
+		type_next = LS_type::hang;
+		addr_next = value_next = RoB_id_next = 0;
+	}
 public:
 	int stat;
 	bool data_ready;

@@ -1,54 +1,72 @@
 #include "Decoder.h"
 
-void DecoderUnit::execute(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {
+void DecoderUnit::execute(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs) {
+	set_PC_next = false;
+	newPC_next = 0;
+	if (rob.clear_signal) {
+		ready_next = true;
+		return;
+	}
 	if (!iu.ready)
 		return;
 	ready_next = true;// default
+	set_PC_next = false;
 	isAddRob = false;
 	isAddLSB = false;
 	isAddRS = false;
 	switch (iu.op) {
-		case Opera::lui: func_lui(iu, rob, rs, lsb); break;
-		case Opera::auipc: func_auipc(iu, rob, rs, lsb); break;
-		case Opera::jal: func_jal(iu, rob, rs, lsb); break;
-		case Opera::jalr: func_jalr(iu, rob, rs, lsb); break;
-		case Opera::beq: func_beq(iu, rob, rs, lsb); break;
-		case Opera::bne: func_bne(iu, rob, rs, lsb); break;
-		case Opera::blt: func_blt(iu, rob, rs, lsb); break;
-		case Opera::bge: func_bge(iu, rob, rs, lsb); break;
-		case Opera::bltu: func_bltu(iu, rob, rs, lsb); break;
-		case Opera::bgeu: func_bgeu(iu, rob, rs, lsb); break;
-		case Opera::lb: func_lb(iu, rob, rs, lsb); break;
-		case Opera::lh: func_lh(iu, rob, rs, lsb); break;
-		case Opera::lw: func_lw(iu, rob, rs, lsb); break;
-		case Opera::lbu: func_lbu(iu, rob, rs, lsb); break;
-		case Opera::lhu: func_lhu(iu, rob, rs, lsb); break;
-		case Opera::sb: func_sb(iu, rob, rs, lsb); break;
-		case Opera::sh: func_sh(iu, rob, rs, lsb); break;
-		case Opera::sw: func_sw(iu, rob, rs, lsb); break;
-		case Opera::addi: func_addi(iu, rob, rs, lsb); break;
-		case Opera::slti: func_slti(iu, rob, rs, lsb); break;
-		case Opera::sltiu: func_sltiu(iu, rob, rs, lsb); break;
-		case Opera::xori: func_xori(iu, rob, rs, lsb); break;
-		case Opera::ori: func_ori(iu, rob, rs, lsb); break;
-		case Opera::andi: func_andi(iu, rob, rs, lsb); break;
-		case Opera::slli: func_slli(iu, rob, rs, lsb); break;
-		case Opera::srli: func_srli(iu, rob, rs, lsb); break;
-		case Opera::srai: func_srai(iu, rob, rs, lsb); break;
-		case Opera::add: func_add(iu, rob, rs, lsb); break;
-		case Opera::sub: func_sub(iu, rob, rs, lsb); break;
-		case Opera::sll: func_sll(iu, rob, rs, lsb); break;
-		case Opera::slt: func_slt(iu, rob, rs, lsb); break;
-		case Opera::sltu: func_sltu(iu, rob, rs, lsb); break;
-		case Opera::xor_: func_xor_(iu, rob, rs, lsb); break;
-		case Opera::srl: func_srl(iu, rob, rs, lsb); break;
-		case Opera::sra: func_sra(iu, rob, rs, lsb); break;
-		case Opera::or_: func_or(iu, rob, rs, lsb); break;
-		case Opera::and_: func_and(iu, rob, rs, lsb); break;
+		case Opera::lui: func_lui(iu, rob, rs, lsb, regs); break;
+		case Opera::auipc: func_auipc(iu, rob, rs, lsb, regs); break;
+		case Opera::jal: func_jal(iu, rob, rs, lsb, regs); break;
+		case Opera::jalr: func_jalr(iu, rob, rs, lsb, regs); break;
+		case Opera::beq:
+		case Opera::bne:
+		case Opera::blt:
+		case Opera::bge:
+		case Opera::bltu:
+		case Opera::bgeu: func_branch(iu, rob, rs, lsb, regs); break;
+		case Opera::lb:
+		case Opera::lh:
+		case Opera::lw:
+		case Opera::lbu:
+		case Opera::lhu: func_load(iu, rob, rs, lsb, regs); break;
+		case Opera::sb:
+		case Opera::sh:
+		case Opera::sw: func_store(iu, rob, rs, lsb, regs); break;
+		case Opera::addi:
+		case Opera::slti:
+		case Opera::sltiu:
+		case Opera::xori:
+		case Opera::ori:
+		case Opera::andi:
+		case Opera::slli:
+		case Opera::srli:
+		case Opera::srai: func_calc_imm(iu, rob, rs, lsb, regs); break;
+		case Opera::add:
+		case Opera::sub:
+		case Opera::sll:
+		case Opera::slt:
+		case Opera::sltu:
+		case Opera::xor_:
+		case Opera::srl:
+		case Opera::sra:
+		case Opera::or_:
+		case Opera::and_: func_calc(iu, rob, rs, lsb, regs); break;
+		case Opera::exit: func_exit(iu, rob, rs, lsb, regs); break;
+		default:
+			throw "Decoder: Unknown instruction!";
 	}
+	if (isAddRob)
+		rob.add(toRob, regs);
+	if (isAddRS)
+		rs.add(toRS);
+	if (isAddLSB)
+		lsb.add(toLSB);
+	if (!ready_next && !rob.clear_signal)
+		iu.stall_by_decoder();
 }
 
-void DecoderUnit::func_lui(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {
+void DecoderUnit::func_lui(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs) {
 	if (rob.full()) {
 		ready_next = false;
 		return;
@@ -57,7 +75,7 @@ void DecoderUnit::func_lui(InstructionUnit &iu, ReorderBuffer &rob, ReservationS
 	isAddRob = true;
 }
 
-void DecoderUnit::func_auipc(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {
+void DecoderUnit::func_auipc(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs) {
 	if (rob.full()) {
 		ready_next = false;
 		return;
@@ -66,7 +84,7 @@ void DecoderUnit::func_auipc(InstructionUnit &iu, ReorderBuffer &rob, Reservatio
 	isAddRob = true;
 }
 
-void DecoderUnit::func_jal(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {
+void DecoderUnit::func_jal(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs) {
 	if (rob.full()) {
 		ready_next = false;
 		return;
@@ -74,61 +92,142 @@ void DecoderUnit::func_jal(InstructionUnit &iu, ReorderBuffer &rob, ReservationS
 	toRob = {RoBType::reg, iu.RD, iu.PC, iu.instrAddr, 0};
 	isAddRob = true;
 	set_PC_next = true;
-	newPC_next = iu.PC + (static_cast<int>(iu.IMM << 11) >> 11);
+	newPC_next = iu.instrAddr + (static_cast<int>(iu.IMM << 11) >> 11);
 }
 
-void DecoderUnit::func_jalr(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {
-	//TODO:jalr
-	if (rob.full()) {
+void DecoderUnit::func_jalr(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs) {
+	// special: when RS1 is not ready, stall.
+	if (rob.full() || regs.has_dependence(iu.RS1)) {
 		ready_next = false;
 		return;
 	}
 	toRob = {RoBType::reg, iu.RD, iu.PC, iu.instrAddr, 0};
 	isAddRob = true;
 	set_PC = true;
-	newPC = (iu.RS1 + (static_cast<int>(iu.IMM << 20) >> 20)) & 0xfffffffe;
+	newPC = (regs[iu.RS1] + (static_cast<int>(iu.IMM << 20) >> 20)) & 0xfffffffe;
 }
 
-void DecoderUnit::func_beq(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_bne(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_blt(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_bge(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_bltu(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_bgeu(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_lb(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_lh(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_lw(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_lbu(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_lhu(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_sb(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_sh(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_sw(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_addi(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_slti(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_sltiu(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_xori(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_ori(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_andi(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_slli(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_srli(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_srai(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
+void DecoderUnit::func_branch(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs) {
+	if (rob.full() || rs.full()) {
+		ready_next = false;
+		return;
+	}
+	unsigned int predict = iu.instrAddr + 4;
+	unsigned int other = iu.instrAddr + (static_cast<int>(iu.IMM << 19) >> 19);
+	toRob = {RoBType::branch, 0, 0, iu.instrAddr, other};
+	toRS = {to_calc_type_from_branch(iu.op), regs[iu.RS1], regs[iu.RS2], regs.get_dependence(iu.RS1), regs.get_dependence(iu.RS2), rob.add_index(), regs.has_dependence(iu.RS1), regs.has_dependence(iu.RS2)};
+	isAddRob = true;
+	isAddRS = true;
+	set_PC = true;
+	newPC = predict;
+}
 
-void DecoderUnit::func_add(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {
+void DecoderUnit::func_load(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs) {
+	if (rob.full() || lsb.full()) {
+		ready_next = false;
+		return;
+	}
+	toRob = {RoBType::reg, iu.RD, 0, iu.instrAddr, 0};
+	toLSB = {to_ls_type(iu.op), regs[iu.RS1], 0, regs.get_dependence(iu.RS1), 0,
+			 static_cast<unsigned>(static_cast<int>(iu.IMM << 20) >> 20),
+			 rob.add_index(), regs.has_dependence(iu.RS1), false, false};
+	isAddRob = true;
+	isAddLSB = true;
+}
+
+void DecoderUnit::func_store(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs) {
+	if (rob.full() || lsb.full()) {
+		ready_next = false;
+		return;
+	}
+	toRob = {RoBType::store, iu.RD, 0, iu.instrAddr, 0};
+	toLSB = {to_ls_type(iu.op), regs[iu.RS1], regs[iu.RS2], regs.get_dependence(iu.RS1), regs.get_dependence(iu.RS2),
+			 static_cast<unsigned>(static_cast<int>(iu.IMM << 20) >> 20),
+			 rob.add_index(), regs.has_dependence(iu.RS1), regs.has_dependence(iu.RS2), true};
+	isAddRob = true;
+	isAddLSB = true;
+}
+
+void DecoderUnit::func_calc(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs) {
 	if (rob.full() || rs.full()) {
 		ready_next = false;
 		return;
 	}
 	toRob = {RoBType::reg, iu.RD, 0, iu.instrAddr, 0};
-	toRS = {Calc_type::add, };
+	toRS = {to_calc_type(iu.op), regs[iu.RS1], regs[iu.RS2], regs.get_dependence(iu.RS1), regs.get_dependence(iu.RS2),
+			rob.add_index(), regs.has_dependence(iu.RS1), regs.has_dependence(iu.RS2)};
+	isAddRob = true;
+	isAddRS = true;
 }
 
-void DecoderUnit::func_sub(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_sll(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_slt(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_sltu(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_xor_(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_srl(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_sra(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_or(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
-void DecoderUnit::func_and(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb) {}
+void DecoderUnit::func_calc_imm(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs) {
+	if (rob.full() || rs.full()) {
+		ready_next = false;
+		return;
+	}
+	toRob = {RoBType::reg, iu.RD, 0, iu.instrAddr, 0};
+	toRS = {to_calc_type(iu.op), regs[iu.RS1], iu.IMM, regs.get_dependence(iu.RS1), 0,
+			rob.add_index(), regs.has_dependence(iu.RS1), false};
+	isAddRob = true;
+	isAddRS = true;
+}
 
+void DecoderUnit::func_exit(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs) {
+	if (rob.full()) {
+		ready_next = false;
+		return;
+	}
+	toRob = {RoBType::exit, 0, 0, iu.instrAddr, 0};
+	isAddRob = true;
+}
+
+Calc_type DecoderUnit::to_calc_type(Opera op) {
+	switch (op) {
+		case Opera::add:
+		case Opera::addi: return Calc_type::add;
+		case Opera::sub: return Calc_type::sub;
+		case Opera::sll:
+		case Opera::slli: return Calc_type::shiftL;
+		case Opera::slt:
+		case Opera::slti: return Calc_type::less;
+		case Opera::sltu:
+		case Opera::sltiu: return Calc_type::lessUnsigned;
+		case Opera::xor_:
+		case Opera::xori: return Calc_type::xor_;
+		case Opera::srl:
+		case Opera::srli: return Calc_type::shiftR;
+		case Opera::sra:
+		case Opera::srai: return Calc_type::shiftRa;
+		case Opera::or_:
+		case Opera::ori: return Calc_type::or_;
+		case Opera::and_:
+		case Opera::andi: return Calc_type::and_;
+	}
+	throw "to_calc_type: unexpected op";
+}
+
+LS_type DecoderUnit::to_ls_type(Opera op) {
+	switch (op) {
+		case Opera::lb: return LS_type::load_byte;
+		case Opera::lh: return LS_type::load_half;
+		case Opera::lw: return LS_type::load_word;
+		case Opera::lbu: return LS_type::load_byte_unsigned;
+		case Opera::lhu: return LS_type::load_half_unsigned;
+		case Opera::sb: return LS_type::store_byte;
+		case Opera::sh: return LS_type::store_half;
+		case Opera::sw: return LS_type::store_word;
+	}
+	throw "to_ls_type: unexpected op";
+}
+
+Calc_type DecoderUnit::to_calc_type_from_branch(Opera op) {
+	switch (op) {
+		case Opera::beq: return Calc_type::equal;
+		case Opera::bne: return Calc_type::notEqual;
+		case Opera::blt: return Calc_type::less;
+		case Opera::bge: return Calc_type::greaterEq;
+		case Opera::bltu: return Calc_type::lessUnsigned;
+		case Opera::bgeu: return Calc_type::greaterEqUnsigned;
+	}
+	throw "to_calc_type_from_branch: unexpected op";
+}

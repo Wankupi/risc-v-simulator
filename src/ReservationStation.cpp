@@ -13,9 +13,14 @@ void ReservationStation::add(Instr2RS const &entry) {
 	list_next[index].busy = true;
 }
 
-void ReservationStation::execute(ALU &alu, ResultType lsb) {
+void ReservationStation::execute(ALU &alu, ResultType lsb, bool clear_signal) {
+	if (clear_signal) {
+		on_clear(alu);
+		return;
+	}
 	if (alu.ready) result_next = {true, alu.RoB_id, alu.get_result()};
-	else result_next.ready = false;
+	else
+		result_next.ready = false;
 
 	update_dependencies(alu, lsb);
 
@@ -81,4 +86,15 @@ bool ReservationStation::full() {
 	for (auto &ele: list)
 		if (!ele.busy) return false;
 	return true;
+}
+
+void ReservationStation::on_clear(ALU &alu) {
+	for (auto &x: list_next) x.busy = false;
+	result_next.ready = false;
+	alu.set_input(Calc_type::hang, 0, 0, 0);
+}
+
+void ReservationStation::init() {
+	for (auto &x: list_next) x.busy = false;
+	result_next.ready = false;
 }

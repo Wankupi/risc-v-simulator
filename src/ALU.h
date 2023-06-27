@@ -16,6 +16,7 @@
 
 struct ALU {
 	void set_input(Calc_type calc_type, unsigned int A, unsigned int B, unsigned int RoB_id_) {
+		ready_next = calc_type != Calc_type::hang;
 		type_next = calc_type;
 		in1_next = A;
 		in2_next = B;
@@ -29,7 +30,7 @@ struct ALU {
 		else if (type == Calc_type::sub)
 			return in1 - in2;
 		else if (type == Calc_type::shiftL)
-			return in1 << in2;
+			return in1 << (in2 & 0b11111);
 		else if (type == Calc_type::shiftR)
 			return in1 >> in2;
 		else if (type == Calc_type::shiftRa)
@@ -55,6 +56,9 @@ struct ALU {
 		else
 			return 0;
 	}
+	void execute() {
+		/* do nothing */
+	}
 	void flush() {
 		ready = ready_next;
 		ready_next = false;
@@ -63,6 +67,7 @@ struct ALU {
 		in2 = in2_next;
 		RoB_id = RoB_id_next;
 	}
+	void init() { flush(); }
 
 public:
 	bool ready;

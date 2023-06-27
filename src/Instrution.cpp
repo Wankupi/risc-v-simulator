@@ -1,24 +1,36 @@
 #include "Instruction.h"
+#include <format>
+#include <iostream>
 
-
-void InstructionUnit::execute(Memory &mem, bool block) {
-	if (wait1) {
-		wait1_next = false;
-		return;
+void InstructionUnit::execute(Memory &mem, bool decoder_need_stall,
+							  bool jump_by_decoder, unsigned int newPC_from_decoder, bool jump_by_RoB, unsigned int newPC_from_RoB) {
+	wait1_next = false;
+	if (!jump_by_RoB ) {
+		if (decoder_need_stall) {
+			ready_next = true;
+			return;
+		}
+		if (wait1) {
+			ready_next = false;
+			return;
+		}
 	}
-	if (block)
-		return;
+	unsigned int usedPC = jump_by_RoB ? newPC_from_RoB : (jump_by_decoder ? newPC_from_decoder : PC);
+	printf("fetch %.8x : ", usedPC);
+	fflush(stdout);
+	unsigned IR = mem.load_word(usedPC);
+	printf("%.8x\n", IR);
+	fflush(stdout);
 
-	unsigned IR = mem.load_word(PC);
-	PC_next = PC + 4;
-	instrAddr_next = PC;
+	PC_next = usedPC + 4;
+	instrAddr_next = usedPC;
 	ready_next = true;
 	RD_next = (IR >> 7) & 0b11111;
 	RS1_next = (IR >> 15) & 0b11111;
 	RS2_next = (IR >> 20) & 0b11111;
 
 	// set IMM
-	switch (IR & 0b111111) {
+	switch (IR & 0b1111111) {
 			// type R
 		case 0b0110011:
 			IMM_next = 0;
@@ -49,13 +61,22 @@ void InstructionUnit::execute(Memory &mem, bool block) {
 		default:
 			throw "Unknown instruction.";
 	}
-
+	if (IR == 0x0ff00513) {
+		op_next = Opera::exit;
+		return;
+	}
 	// set op
-	switch (IR & 0x3f) {
+	switch (IR & 0x7f) {
 		case 0b0110111: op_next = Opera::lui; break;
 		case 0b0010111: op_next = Opera::auipc; break;
-		case 0b1101111: op_next = Opera::jal; break;
-		case 0b1100111: op_next = Opera::jalr; break;
+		case 0b1101111:
+			op_next = Opera::jal;
+			wait1_next = true;
+			break;
+		case 0b1100111:
+			op_next = Opera::jalr;
+			wait1_next = true;
+			break;
 		case 0b1100011:// branch
 			switch ((IR >> 12) & 0b111) {
 				case 0b000: op_next = Opera::beq; break;
@@ -130,4 +151,17 @@ void InstructionUnit::execute(Memory &mem, bool block) {
 		default:
 			throw "Unknown instruction.";
 	}
+}
+
+void InstructionUnit::stall_by_decoder() {
+	// cancel all the next stage
+	PC_next = PC;
+	wait1_next = wait1;
+	ready_next = ready;
+	op_next = op;
+	RS1_next = RS1;
+	RS2_next = RS2;
+	IMM_next = IMM;
+	RD_next = RD;
+	instrAddr_next = instrAddr;
 }
