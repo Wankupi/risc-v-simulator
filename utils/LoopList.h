@@ -1,9 +1,9 @@
 #pragma once
-#include <concepts>
+//#include <concepts>
 template<typename T, unsigned int N>
-	requires requires(T a) {
-		{ bool(a.busy) };
-	}
+//	requires requires(T a) {
+//		{ bool(a.busy) };
+//	}
 struct LoopList {
 	static constexpr int M = N;
 	T arr[N];

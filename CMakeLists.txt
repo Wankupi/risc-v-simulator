@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 project(risc-v-simulate)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 include_directories(utils)
 
 file(GLOB sources RELATIVE ${PROJECT_SOURCE_DIR} src/*.cpp)
