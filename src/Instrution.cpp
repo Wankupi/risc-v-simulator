@@ -1,6 +1,4 @@
 #include "Instruction.h"
-#include <format>
-#include <iostream>
 
 void InstructionUnit::execute(Memory &mem, bool decoder_need_stall,
 							  bool jump_by_decoder, unsigned int newPC_from_decoder, bool jump_by_RoB, unsigned int newPC_from_RoB) {
