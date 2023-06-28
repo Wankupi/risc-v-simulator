@@ -21,37 +21,31 @@ void ReorderBuffer::execute(RegisterUnit &regs, ResultType rs, ResultType lsb) {
 		list_next.pop();
 		if (entry.type == RoBType::reg) {
 			regs.set_val(entry.regId, id, entry.value);
-			std::cout << std::format("RoB({}): set reg {} to {}\n", id, entry.regId, entry.value) << std::endl;
 		}
 		else if (entry.type == RoBType::branch) {
 			if (entry.value) {
 				newPC_next = entry.jumpAddr;
-				clear_signal = true;
-				std::cout << std::format("RoB({}): jump to {}\n", id, newPC_next) << std::endl;
+				clear_signal_next = true;
 			}
-			std::cout << std::format("RoB({}): jump hit.\n", id) << std::endl;
 		}
 		else if (entry.type == RoBType::store) {
-			std::cout << std::format("RoB({}): store {:0>8x} done\n", id, entry.instrAddr) << std::endl;
 			// do nothing
 		}
 		else if (entry.type == RoBType::exit) {
-			std::cout << std::format("RoB({}): exit\n", id) << std::endl;
 			throw regs[10] & 0xff;
 		}
 	}
 }
 
-void ReorderBuffer::add(Instr2RoB const &entry, RegisterUnit &regs) {
+void ReorderBuffer::add(Instr2RoB entry, RegisterUnit &regs) {
 	if (list.full()) throw "ReorderBuffer add: list is full";
-	regs.set_dependence(entry.regId, list.tail);
-	list.push({entry, true, false});
-	std::cout << std::format("RoB: add tpye {} instr {:0>8x}", int(entry.type), entry.instrAddr) << std::endl;
+	if (entry.type == RoBType::reg)
+		regs.set_dependence(entry.regId, list.tail);
+	list_next.push({entry, true});
 }
 
 void ReorderBuffer::on_clear() {
 	list_next.clear();
-	list_next.head = list_next.tail = 0;
 	clear_signal_next = false;
 	newPC_next = 0;
 }

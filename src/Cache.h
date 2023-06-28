@@ -13,6 +13,7 @@ public:
 		value_next = value_;
 		RoB_id_next = RoB_id_;
 		type_next = type_;
+		is_set_this_cycle = true;
 	}
 
 	void execute(Memory &mem, bool clear_signal) {
@@ -31,13 +32,15 @@ public:
 				mem.store_half(addr, value);
 			else if (type == LS_type::store_byte)
 				mem.store_byte(addr, value);
+			if (!is_set_this_cycle)
+				type_next = LS_type::hang;
 		}
 	}
 
 	ResultType get_result(Memory &mem) {
-		if (!data_ready)
+		if (!data_ready || type == LS_type::hang)
 			return {false, 0, 0};
-		unsigned int val;
+		unsigned int val = 1;
 		if (type == LS_type::load_word)
 			val = mem.load_word(addr);
 		else if (type == LS_type::load_half)
@@ -58,6 +61,7 @@ public:
 		value = value_next;
 		RoB_id = RoB_id_next;
 		type = type_next;
+		is_set_this_cycle = false;
 	}
 	bool ready() { return data_ready; }
 	bool free() { return stat == 0; }
@@ -66,12 +70,13 @@ public:
 		init();
 	}
 
-    void init() {
+	void init() {
 		stat_next = 0;
 		data_ready_next = false;
 		type_next = LS_type::hang;
 		addr_next = value_next = RoB_id_next = 0;
 	}
+
 public:
 	int stat;
 	bool data_ready;
@@ -85,4 +90,6 @@ private:
 	LS_type type_next;
 	unsigned int addr_next, value_next;
 	unsigned int RoB_id_next;
+private:
+	bool is_set_this_cycle;
 };

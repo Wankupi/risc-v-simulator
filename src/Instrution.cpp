@@ -5,7 +5,7 @@
 void InstructionUnit::execute(Memory &mem, bool decoder_need_stall,
 							  bool jump_by_decoder, unsigned int newPC_from_decoder, bool jump_by_RoB, unsigned int newPC_from_RoB) {
 	wait1_next = false;
-	if (!jump_by_RoB ) {
+	if (!jump_by_RoB) {
 		if (decoder_need_stall) {
 			ready_next = true;
 			return;
@@ -16,11 +16,7 @@ void InstructionUnit::execute(Memory &mem, bool decoder_need_stall,
 		}
 	}
 	unsigned int usedPC = jump_by_RoB ? newPC_from_RoB : (jump_by_decoder ? newPC_from_decoder : PC);
-	printf("fetch %.8x : ", usedPC);
-	fflush(stdout);
 	unsigned IR = mem.load_word(usedPC);
-	printf("%.8x\n", IR);
-	fflush(stdout);
 
 	PC_next = usedPC + 4;
 	instrAddr_next = usedPC;
@@ -40,23 +36,27 @@ void InstructionUnit::execute(Memory &mem, bool decoder_need_stall,
 		case 0b0000011:
 		case 0b0010011:
 		case 0b0001111:
-			IMM_next = (IR >> 20);
+			IMM_next = (static_cast<int>(IR) >> 20);
 			break;
 			// type S
 		case 0b0100011:
 			IMM_next = ((IR >> 7) & 0b11111) | ((IR >> 20) & 0b111111100000);
+			IMM_next = (static_cast<int>(IMM_next << 20) >> 20);
 			break;
 			// type B
 		case 0b1100011:
-			IMM_next = ((IR >> 8) & 0b1111) | ((IR >> 7) & 1);
+			IMM_next = ((IR >> 7) & 0b11110) | (((IR >> 7) & 1) << 11) | (((IR >> 25) & 0b111111) << 5) | (((IR >> 31) & 1) << 12);
+			IMM_next = static_cast<int>(IMM_next << 19) >> 19;
 			break;
 			// type U
 		case 0b0110111:
 			IMM_next = IR & (~0b111111111111u);
+			// already occupy the 31st bit
 			break;
 			// type J
 		case 0b1101111:
 			IMM_next = (((IR >> 21) & 0x3ff) << 1) | (((IR >> 20) & 1) << 11) | (((IR >> 12) & 0xff) << 12) | (((IR >> 31) & 1) << 20);
+			IMM_next = static_cast<int>(IMM_next << 11) >> 11;
 			break;
 		default:
 			throw "Unknown instruction.";

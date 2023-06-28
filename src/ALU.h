@@ -22,7 +22,7 @@ struct ALU {
 		in2_next = B;
 		RoB_id_next = RoB_id_;
 	}
-	unsigned int get_result() {
+	unsigned int get_result() const {
 		if (!ready)
 			return 0;
 		if (type == Calc_type::add)
@@ -32,9 +32,9 @@ struct ALU {
 		else if (type == Calc_type::shiftL)
 			return in1 << (in2 & 0b11111);
 		else if (type == Calc_type::shiftR)
-			return in1 >> in2;
+			return in1 >> (in2 & 0b11111);
 		else if (type == Calc_type::shiftRa)
-			return static_cast<signed int>(in1) >> in2;
+			return static_cast<signed int>(in1) >> (in2 & 0b11111);
 		else if (type == Calc_type::xor_)
 			return in1 ^ in2;
 		else if (type == Calc_type::and_)

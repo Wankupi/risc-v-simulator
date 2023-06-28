@@ -12,23 +12,21 @@ public:
 		instruction.init();
 		decoder.init();
 		rob.init();
-		rs.init();
+		rs.init(&alu);
 		lsb.init();
 		alu.init();
 		cache.init();
 		flush();
 	}
-	int work() {
+	unsigned int work() {
 		if (!mem) throw "Memory not linked";
 		init();
 		try {
-			for (unsigned int tick = 1;; ++tick) {
-				std::cout << "time clock : " << tick << " - - - - - - - - -" << std::endl;
+			for (unsigned long long tick = 1;; ++tick) {
 				execute();
 				flush();
-				std::cout << std::endl;
 			}
-		} catch (int x) {
+		} catch (unsigned int x) {
 			return x;
 		} catch (...) {
 			throw;
@@ -38,11 +36,12 @@ public:
 		// up level
 		instruction.execute(*mem, !decoder.ready_next, decoder.set_PC, decoder.newPC, rob.clear_signal, rob.newPC);
 		decoder.execute(instruction, rob, rs, lsb, regs);
-		rob.execute(regs, rs.export_data(alu), lsb.export_data());
-		lsb.execute(cache, *mem, rs.export_data(alu), rob.data_to_LSB());
-		rs.execute(alu, lsb.export_data(), rob.clear_signal);
+		rob.execute(regs, rs.export_data(), lsb.export_data());
+		lsb.execute(cache, *mem, rs.export_data(), rob.data_to_LSB());
+		rs.execute(lsb.export_data(), rob.clear_signal);
 		cache.execute(*mem, rob.clear_signal);
 		alu.execute();
+		regs.execute(rob.clear_signal);
 	}
 	void flush() {
 		// down level

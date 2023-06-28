@@ -7,7 +7,6 @@
 
 struct ReorderBufferEntry : Instr2RoB {
 	bool busy;
-	bool ready;
 };
 
 class ReorderBuffer {
@@ -21,7 +20,7 @@ public:
 	}
 
 	bool full() { return list.full(); }
-	void add(Instr2RoB const &entry, RegisterUnit &regs);
+	void add(Instr2RoB entry, RegisterUnit &regs);
 	unsigned int add_index() const { return list.tail; }
 	RoB2LSB data_to_LSB() const { return {clear_signal, !list.empty(), list.head}; }
 	void init() { on_clear(); }

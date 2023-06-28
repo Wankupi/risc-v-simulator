@@ -19,10 +19,12 @@ struct LoopList {
 		if (tail == N) tail = 0;
 	}
 	void pop() {
+		arr[head].busy = false;
 		if (++head == N) head = 0;
 	}
 	T &operator[](int x) { return arr[x]; }
 	void clear() {
+		head = tail = 0;
 		for (auto &x : arr) x.busy = false;
 	}
 };

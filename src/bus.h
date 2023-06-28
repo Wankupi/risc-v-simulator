@@ -71,8 +71,5 @@ struct Instr2RoB {
 	unsigned int value;
 	unsigned int instrAddr; // used for predictor
 	unsigned int jumpAddr;
+	bool ready;
 };
-
-
-#include <iostream>
-#include <format>

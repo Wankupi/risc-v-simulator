@@ -33,6 +33,7 @@ private:
 	Calc_type to_calc_type(Opera op);
 	LS_type to_ls_type(Opera op);
 	Calc_type to_calc_type_from_branch(Opera op);
+	void deal_dependent(ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs);
 
 public:
 	bool set_PC;

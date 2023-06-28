@@ -1,8 +1,7 @@
 #include "Memory.h"
-#include <cstring>
 #include <sstream>
 #include <string>
-#include <string>
+
 void Memory::load_file(std::istream &in) {
 	std::string str;
 	unsigned int current = 0;

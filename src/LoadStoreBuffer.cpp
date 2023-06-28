@@ -47,6 +47,9 @@ void LoadStoreBuffer::add(const Instr2LSB &entry) {
 }
 
 bool LoadStoreBuffer::full() {
+	for (auto &ele: list)
+		if (ele.busy && (ele.type == LS_type::store_word || ele.type == LS_type::store_half || ele.type == LS_type::store_byte))
+			return true;
 	for (auto &ele: list) {
 		if (!ele.busy) return false;
 	}

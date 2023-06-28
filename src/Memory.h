@@ -9,12 +9,17 @@ public:
 	Memory() = default;
 	void load_file(std::istream &in);
 	unsigned int load_word(unsigned int x) const {
+		// if there is a load after a branch, it's address may be wrong.
+		// so the check is necessary.
+		if (pages.count(x / PageSize) == 0) return 0;
 		return *reinterpret_cast<unsigned int const *>(pages.at(x / PageSize).data() + (x % PageSize));
 	}
 	unsigned short load_half(unsigned int x) const {
+		if (pages.count(x / PageSize) == 0) return 0;
 		return *reinterpret_cast<unsigned short const *>(pages.at(x / PageSize).data() + (x % PageSize));
 	}
 	unsigned char load_byte(unsigned int x) const {
+		if (pages.count(x / PageSize) == 0) return 0;
 		return *reinterpret_cast<unsigned char const *>(pages.at(x / PageSize).data() + (x % PageSize));
 	}
 
