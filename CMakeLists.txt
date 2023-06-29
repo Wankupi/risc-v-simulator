@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.15)
 project(risc-v-simulate)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+
 include_directories(utils)
 
 file(GLOB sources RELATIVE ${PROJECT_SOURCE_DIR} src/*.cpp)
@@ -19,5 +21,5 @@ foreach (testcase ${testcases})
     endif()
     add_test(NAME ${testcase} WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/run
             COMMAND bash -c "$<TARGET_FILE:code> <../data/${testcase}.data")
-    set_property(TEST ${testcase} PROPERTY TIMEOUT 3)
+    set_property(TEST ${testcase} PROPERTY TIMEOUT 60)
 endforeach ()

@@ -181,6 +181,7 @@ void DecoderUnit::func_exit(InstructionUnit &iu, ReorderBuffer &rob, Reservation
 	}
 	toRob = {RoBType::exit, 0, 0, iu.instrAddr, 0, true};
 	isAddRob = true;
+	ready_next = false;
 }
 
 Calc_type DecoderUnit::to_calc_type(Opera op) {

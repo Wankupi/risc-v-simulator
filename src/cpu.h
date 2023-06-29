@@ -21,16 +21,19 @@ public:
 	unsigned int work() {
 		if (!mem) throw "Memory not linked";
 		init();
+		unsigned long long tick = 0;
 		try {
-			for (unsigned long long tick = 1;; ++tick) {
+			for (;; ++tick) {
 				execute();
 				flush();
 			}
 		} catch (unsigned int x) {
+			std::cerr << "tick: " << tick << std::endl;
 			return x;
 		} catch (...) {
 			throw;
 		}
+		return 0;
 	}
 	void execute() {
 		// up level

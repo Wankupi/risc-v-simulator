@@ -2,7 +2,6 @@
 
 void InstructionUnit::execute(Memory &mem, bool decoder_need_stall,
 							  bool jump_by_decoder, unsigned int newPC_from_decoder, bool jump_by_RoB, unsigned int newPC_from_RoB) {
-	wait1_next = false;
 	if (!jump_by_RoB) {
 		if (decoder_need_stall) {
 			ready_next = true;
@@ -10,6 +9,7 @@ void InstructionUnit::execute(Memory &mem, bool decoder_need_stall,
 		}
 		if (wait1) {
 			ready_next = false;
+			wait1_next = false;
 			return;
 		}
 	}
