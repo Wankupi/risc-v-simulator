@@ -16,7 +16,7 @@ public:
 		is_set_this_cycle = true;
 	}
 
-	void execute(Memory &mem, bool clear_signal) {
+	void execute(bool clear_signal) {
 		if (clear_signal) {
 			on_clear();
 			return;
@@ -27,30 +27,30 @@ public:
 		}
 		else if (stat == 0) {
 			if (type == LS_type::store_word)
-				mem.store_word(addr, value);
+				mem->store_word(addr, value);
 			else if (type == LS_type::store_half)
-				mem.store_half(addr, value);
+				mem->store_half(addr, value);
 			else if (type == LS_type::store_byte)
-				mem.store_byte(addr, value);
+				mem->store_byte(addr, value);
 			if (!is_set_this_cycle)
 				type_next = LS_type::hang;
 		}
 	}
 
-	ResultType get_result(Memory &mem) {
+	ResultType get_result() {
 		if (!data_ready || type == LS_type::hang)
 			return {false, 0, 0};
 		unsigned int val = 1;
 		if (type == LS_type::load_word)
-			val = mem.load_word(addr);
+			val = mem->load_word(addr);
 		else if (type == LS_type::load_half)
-			val = static_cast<signed short>(mem.load_half(addr));
+			val = static_cast<signed short>(mem->load_half(addr));
 		else if (type == LS_type::load_byte)
-			val = static_cast<signed char>(mem.load_byte(addr));
+			val = static_cast<signed char>(mem->load_byte(addr));
 		else if (type == LS_type::load_half_unsigned)
-			val = mem.load_half(addr);
+			val = mem->load_half(addr);
 		else if (type == LS_type::load_byte_unsigned)
-			val = mem.load_byte(addr);
+			val = mem->load_byte(addr);
 		return {true, RoB_id, val};
 	}
 
@@ -67,15 +67,19 @@ public:
 	bool free() { return stat == 0; }
 
 	void on_clear() {
-		init();
-	}
-
-	void init() {
 		stat_next = 0;
 		data_ready_next = false;
 		type_next = LS_type::hang;
 		addr_next = value_next = RoB_id_next = 0;
 	}
+
+	void init(Memory *pMem) {
+		mem = pMem;
+		on_clear();
+	}
+
+public:
+	Memory *mem;
 
 public:
 	int stat;
@@ -90,6 +94,7 @@ private:
 	LS_type type_next;
 	unsigned int addr_next, value_next;
 	unsigned int RoB_id_next;
+
 private:
 	bool is_set_this_cycle;
 };

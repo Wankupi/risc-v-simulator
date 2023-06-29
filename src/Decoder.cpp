@@ -114,9 +114,10 @@ void DecoderUnit::func_branch(InstructionUnit &iu, ReorderBuffer &rob, Reservati
 		ready_next = false;
 		return;
 	}
-	unsigned int predict = iu.instrAddr + 4;
-	unsigned int other = iu.instrAddr + iu.IMM;
-	toRob = {RoBType::branch, 0, 0, iu.instrAddr, other, false};
+	bool isJump = predictor->get_prediction(iu.instrAddr);
+	unsigned int predict = isJump ? iu.instrAddr + iu.IMM : iu.instrAddr + 4;
+	unsigned int other = isJump ? iu.instrAddr + 4 : iu.instrAddr + iu.IMM;
+	toRob = {RoBType::branch, 0, 0, iu.instrAddr, other | isJump, false};
 	toRS = {to_calc_type_from_branch(iu.op), regs[iu.RS1], regs[iu.RS2], regs.get_dependence(iu.RS1), regs.get_dependence(iu.RS2), rob.add_index(), regs.has_dependence(iu.RS1), regs.has_dependence(iu.RS2)};
 	isAddRob = true;
 	isAddRS = true;

@@ -21,10 +21,14 @@ struct LoopList {
 	void pop() {
 		arr[head].busy = false;
 		if (++head == N) head = 0;
+		while (head != tail && !arr[head].busy) {
+			if (++head == N) head = 0;
+		}
 	}
 	T &operator[](int x) { return arr[x]; }
 	void clear() {
 		head = tail = 0;
-		for (auto &x : arr) x.busy = false;
+		for (auto &x: arr) x.busy = false;
 	}
+	[[nodiscard]] constexpr static int max_size() { return N; }
 };

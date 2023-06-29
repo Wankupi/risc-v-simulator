@@ -3,7 +3,7 @@
 #include "Register.h"
 #include "bus.h"
 #include <array>
-
+#include "Predictor.h"
 
 struct ReorderBufferEntry : Instr2RoB {
 	bool busy;
@@ -11,7 +11,7 @@ struct ReorderBufferEntry : Instr2RoB {
 
 class ReorderBuffer {
 public:
-	void execute(RegisterUnit &regs, ResultType rs, ResultType lsb);
+	void execute(RegisterUnit &regs, ResultType rs, ResultType lsb, Predictor &predictor);
 
 	void flush() {
 		list = list_next;

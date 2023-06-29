@@ -1,6 +1,7 @@
 #pragma once
 #include "Instruction.h"
 #include "LoadStoreBuffer.h"
+#include "Predictor.h"
 #include "Register.h"
 #include "ReorderBuffer.h"
 #include "ReservationStation.h"
@@ -14,11 +15,13 @@ public:
 		newPC = newPC_next;
 		ready_next = true;
 	}
-	void init() {
+	void init(Predictor *pPredictor) {
 		set_PC_next = false;
 		newPC_next = 0;
 		ready_next = true;
+		predictor = pPredictor;
 	}
+
 private:
 	void func_lui(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs);
 	void func_auipc(InstructionUnit &iu, ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs);
@@ -34,6 +37,9 @@ private:
 	LS_type to_ls_type(Opera op);
 	Calc_type to_calc_type_from_branch(Opera op);
 	void deal_dependent(ReorderBuffer &rob, ReservationStation &rs, LoadStoreBuffer &lsb, RegisterUnit &regs);
+
+public:
+	Predictor *predictor;
 
 public:
 	bool set_PC;

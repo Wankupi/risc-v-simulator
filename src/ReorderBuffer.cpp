@@ -1,6 +1,6 @@
 #include "ReorderBuffer.h"
 
-void ReorderBuffer::execute(RegisterUnit &regs, ResultType rs, ResultType lsb) {
+void ReorderBuffer::execute(RegisterUnit &regs, ResultType rs, ResultType lsb, Predictor &predictor) {
 	if (clear_signal) {
 		on_clear();
 		return;
@@ -23,10 +23,13 @@ void ReorderBuffer::execute(RegisterUnit &regs, ResultType rs, ResultType lsb) {
 			regs.set_val(entry.regId, id, entry.value);
 		}
 		else if (entry.type == RoBType::branch) {
-			if (entry.value) {
-				newPC_next = entry.jumpAddr;
+			if ((entry.value & 1) ^ (entry.jumpAddr & 1)) {
+				newPC_next = entry.jumpAddr & (~1);
 				clear_signal_next = true;
+				predictor.update(entry.instrAddr, false);
 			}
+			else
+				predictor.update(entry.instrAddr, true);
 		}
 		else if (entry.type == RoBType::store) {
 			// do nothing
